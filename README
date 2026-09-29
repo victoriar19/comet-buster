@@ -1,39 +1,3 @@
-==========================================================
-Comet Busters - Edition "Echo"          (mini-projet INF150)
-Auteur : Maram [NOM]
-==========================================================
-
-Ce qui a ete ajoute par rapport au prototype :
-
-1. Socle obligatoire
-   - liste chainee complete (linkedlist.c)
-   - scores : pseudo saisi dans le terminal, sauvegarde dans scores.txt
-     au format pseudo:score, classement trie (scores.c)
-   - statistiques de fin de partie (precision, temps, comettes...)
-   - bugs du prototype corriges (liste dans RECAP.md)
-
-2. Mecaniques originales
-   - RECUL : pas de moteur, on avance grace au recul de chaque tir
-     (MODE_RECUL dans main.c : 1 = recul, 0 = jeu classique)
-   - FANTOME : quand on perd une vie, les 10 dernieres secondes de
-     la vie precedente sont rejouees par un vaisseau fantome qui detruit
-     les comettes qu'il touche
-   - NIVEAUX EN FICHIER TEXTE : levels/level1.txt, level2.txt, ...
-     ('.' vide, 'O' grosse, 'o' moyenne, 's' petite comete).
-     Au-dela du dernier fichier, les niveaux sont generes automatiquement.
-   - ESCORTE : le Nyan cat n'est plus un ennemi, il faut le proteger.
-     +10 points par seconde survecue ; s'il est touche, on perd une vie.
-
-Controles : fleches gauche/droite = tourner, espace = tirer
-            (fleches haut/bas = moteur seulement si MODE_RECUL = 0),
-            q ou echap = quitter.
-
-Le pseudo se saisit dans le terminal a la fin de la partie.
-
-----------------------------------------------------------
-(README d'origine)
-----------------------------------------------------------
-
 ======
 README
 ======

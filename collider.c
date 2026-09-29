@@ -3,7 +3,6 @@
  * */
 
 #include <stdbool.h>
-#include <stdlib.h>
 #include <SDL.h>
 
 #include "collider.h"

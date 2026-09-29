@@ -49,7 +49,7 @@
  * a = y2-y1 / x2-x1
  * b = y1 - a*x1
  * */
-#define SECURITY_ZONE_COEFFICIENT ((float)(SECURITY_ZONE_MIN - SECURITY_ZONE_MAX)/(LEVEL_MAX - LEVEL_MIN))
+#define SECURITY_ZONE_COEFFICIENT ((SECURITY_ZONE_MIN - SECURITY_ZONE_MAX)/(LEVEL_MAX - LEVEL_MIN))
 #define SECURITY_ZONE_CST (SECURITY_ZONE_MAX - (SECURITY_ZONE_COEFFICIENT * LEVEL_MIN))
 
 /* Level randomness */
@@ -58,10 +58,6 @@
 
 /* for float comparison: fabsf(a-b) < EPSILON */
 #define EPSILON 0.000001
-
-/* taille de la grille des niveaux ecrits dans un fichier texte */
-#define GRID_COLS 10
-#define GRID_ROWS 10
 
 /* level functions (and procedures...) */
 
@@ -75,6 +71,5 @@ bool is_in_seczone(int val, int first, int second);
 sprite_t gen_nyancat_sprite(int level, SDL_Surface *scr);
 const char* get_nyancat_sprite_fname(int level, float dx);
 void set_nyancat_spawn_coordinates(int * u, int * v);
-int load_level_file(int level, list_ptr *comet_list, SDL_Surface *scr);
 
 #endif /* LEVEL_H */

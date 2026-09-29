@@ -1,7 +1,5 @@
 #include <SDL.h>
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "sprite.h"
 
@@ -18,10 +16,6 @@ sprite_t sprite_new(enum sprite_type type, const char *fname, int colorkey, int 
 
   /* load sprite */
   tmp_surf = SDL_LoadBMP(fname);
-  if (tmp_surf == NULL) {
-    fprintf(stderr, "Sprite introuvable : %s\n", fname);
-    exit(1);
-  }
   //  printf("tmp_surf->format->BitsPerPixel: %d\n", tmp_surf->format->BitsPerPixel);
   sprite->sprite = SDL_DisplayFormat(tmp_surf);
   SDL_FreeSurface(tmp_surf);

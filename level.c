@@ -4,8 +4,6 @@
 
 #include <SDL.h>
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 
 #include "linkedlist.h"
@@ -54,10 +52,6 @@ float get_base_speed(int level, enum sprite_type type)
     case S_COMET:
       speed_coef = (S_COMET_SPEED_MAX - S_COMET_SPEED) / (LEVEL_MAX - LEVEL_MIN);
       speed_cst = (S_COMET_SPEED_MAX - speed_coef * LEVEL_MAX);
-      break;
-    default:                /* type inconnu : vitesse nulle */
-      speed_coef = 0;
-      speed_cst = 0;
       break;
   }
   return (float) ((speed_coef * level) + speed_cst);
@@ -171,6 +165,7 @@ void gen_level(int level, list_ptr *comet_list, SDL_Surface *scr)
 {
   security_zone(level);
   int colorkey = SDL_MapRGB(scr->format, 0, 255, 255);
+  srand(time (NULL));
   int i;
   int comet_number = spawn_comet_number(level);
   for (i = 0; i < comet_number ; i++) {
@@ -182,12 +177,13 @@ void gen_level(int level, list_ptr *comet_list, SDL_Surface *scr)
         v = rand()%SCREEN_HEIGHT;
       } while(is_in_seczone(v,sec_zone_y_min,sec_zone_y_max));
     }
-    float angle = (float)(rand()%360)/360*2*PI;
+    int angle = (float)(rand()%360)/360*2*PI;
     float speed = get_base_speed(level, L_COMET);
     sprite_t sprite_comet = sprite_new(L_COMET, get_comet_sprite(level, L_COMET), colorkey, 64, 32, 0, u, v, speed*cos(angle), speed*sin(angle), 0.);
     *comet_list = list_add(sprite_comet, *comet_list);
   }
-  /* le Nyan cat n'est plus dans la liste des comettes : main.c le gere a part */
+  sprite_t sprite_nyancat = gen_nyancat_sprite(level, scr);
+  *comet_list = list_add(sprite_nyancat, *comet_list);
 }
 
 /* Helper: return True when the value is in the security zone */
@@ -209,7 +205,7 @@ bool is_in_seczone(int val, int first, int second)
 sprite_t gen_nyancat_sprite(int level, SDL_Surface *scr)
 {
   int colorkey;;
-  float angle = (float)(rand()%360)/360*2*PI;
+  int angle = (float)(rand()%360)/360*2*PI;
   float dx = NYANCAT_SPEED*cos(angle);
   ///////
   int sprite_size, anim_sprite_num_max;
@@ -290,88 +286,85 @@ sprite_t gen_nyancat_sprite(int level, SDL_Surface *scr)
   return sprite_nyancat;
 }
 
-/* Le Nyan cat apparait sur un bord de l'ecran, choisi au hasard :
- * 0 = gauche, 1 = droite, 2 = haut, 3 = bas */
+/* Adjust spawn coordinates for nyancat: it can only spwan from an edge of the
+ * screen. Therefore we compute random values of the spawn point, and project
+ * it to the edges depending on the quadran where it is */
+
+//A I(W/2, H/2) - 0,0 => (0-H/2)/(0-W/2) = H/W
+//B I           - W,0 => (0-H/2)/(W-W/2) = -H/W
+//C I           - 0,H => (H-H/2)/(0-W/2) = -H/W
+//D I           - W,H => (H-H/2)/(W-W/2) = H/W
+
 void set_nyancat_spawn_coordinates(int * u, int * v)
 {
-  int edge = rand() % 4;
-  if (edge == 0) {
-    *u = 0;
-    *v = rand() % SCREEN_HEIGHT;
-  } else if (edge == 1) {
-    *u = SCREEN_WIDTH - 1;
-    *v = rand() % SCREEN_HEIGHT;
-  } else if (edge == 2) {
-    *u = rand() % SCREEN_WIDTH;
-    *v = 0;
-  } else {
-    *u = rand() % SCREEN_WIDTH;
-    *v = SCREEN_HEIGHT - 1;
-  }
-}
-
-/* Charge un niveau depuis le fichier levels/levelN.txt.
- * Grille de GRID_ROWS lignes de GRID_COLS caracteres :
- *   '.' = vide, 'O' = grosse comete, 'o' = moyenne, 's' = petite
- * Renvoie 1 si le fichier a ete lu, 0 sinon (on utilisera gen_level). */
-int load_level_file(int level, list_ptr *comet_list, SDL_Surface *scr)
-{
-  char fname[64];
-  char line[64];
-  FILE *f;
-  int row = 0;
-  int col;
-  int colorkey = SDL_MapRGB(scr->format, 0, 255, 255);
-  int cell_w = SCREEN_WIDTH / GRID_COLS;
-  int cell_h = SCREEN_HEIGHT / GRID_ROWS;
-
-  sprintf(fname, "levels/level%d.txt", level);
-  f = fopen(fname, "r");
-  if (f == NULL) {
-    return 0;
-  }
-
-  while (row < GRID_ROWS && fgets(line, sizeof(line), f) != NULL) {
-    for (col = 0; col < GRID_COLS && line[col] != '\0' && line[col] != '\n'; col++) {
-      enum sprite_type type;
-      int size;
-      int x, y, dx, dy;
-      float angle, speed;
-      sprite_t comet;
-
-      if (line[col] == 'O') {
-        type = L_COMET;
-        size = 64;
-      } else if (line[col] == 'o') {
-        type = M_COMET;
-        size = 32;
-      } else if (line[col] == 's') {
-        type = S_COMET;
-        size = 16;
-      } else {
-        continue;           /* case vide (ou caractere inconnu) */
+  float x,y;
+  int xi = SCREEN_WIDTH/2;
+  int yi = SCREEN_HEIGHT/2;
+  int dx = *u-xi;//TODO: check if == 0 => *u=xi
+  int dy = *v-yi;//TODO: check if == 0 => *v=yi
+  float a = dy/dx;//TODO: to check
+  //(IS) : y = ax+b
+  //       a = v-yi / u-xi
+  //       b = y-ax => b = v-au
+  float b =  (*v) - (a * (*u));
+  //unsafe (division by 0)
+  float bissec_coef = SCREEN_HEIGHT/SCREEN_WIDTH;
+  //on simplifiera plus tard, d'abord on met les formules avec tous les cas
+  if (*u < xi) {//A & C
+    if (*v < yi) {//A
+      if (fabsf(bissec_coef-a) < EPSILON) {//cannot write equality with float
+        x = 0;
+        y = 0;
+      } else if (bissec_coef < a) {
+        x = (0 - b)/a;//(IS) inter (y=0)
+        y = 0;
+      } else{
+        x = 0;
+        y = (a * 0) + b;//(IS) inter (x=0)
       }
-
-      x = col * cell_w;
-      y = row * cell_h;
-
-      /* on ne pose pas de comete trop pres du vaisseau au depart */
-      dx = x - SPACESHIP_INIT_X;
-      dy = y - SPACESHIP_INIT_Y;
-      if (dx * dx + dy * dy < 100 * 100) {
-        continue;
+    } else {//C
+      if (fabsf(bissec_coef - a) < EPSILON) {//idem
+        x = 0;
+        y = SCREEN_HEIGHT;
+      } else if (bissec_coef < a) {
+        x = 0;
+        y = (a * 0) + b;//(IS) inter (x=0)
+      } else{
+        x = (SCREEN_HEIGHT - b)/a;//(IS) inter (y=H)
+        y = SCREEN_HEIGHT;
       }
-
-      angle = (float)(rand() % 360) / 360 * 2 * PI;
-      speed = get_base_speed(level, type);
-      comet = sprite_new(type, get_comet_sprite(level, type), colorkey, size, 32, 0,
-                         x, y, speed * cos(angle), speed * sin(angle), 0.);
-      *comet_list = list_add(comet, *comet_list);
     }
-    row++;
+  } else {//B & D
+    bissec_coef = (-1)*bissec_coef ;
+    //TODO
+    // *u == xi => x=xi
+    // *v == yi => y=yi
+    if (*v < yi) {//B
+      if (fabsf(bissec_coef - a) < EPSILON) {//idem
+        x = SCREEN_WIDTH;
+        y = 0;
+      } else if (bissec_coef < a) {
+        x = SCREEN_WIDTH;
+        y = (a * SCREEN_WIDTH) + b;//(IS) inter (x=W)
+      } else {
+        x = (0 - b)/a;//(IS) inter (y=0)
+        y = 0;
+      }
+    } else {//D
+      if (fabsf(bissec_coef - a) < EPSILON) {//idem
+        x = SCREEN_WIDTH;
+        y = SCREEN_HEIGHT;
+      } else if (bissec_coef < a) {
+        x = (SCREEN_HEIGHT - b)/a;//(IS) inter (y=H)
+        y = SCREEN_HEIGHT;
+      } else{
+        x = SCREEN_WIDTH;
+        y = (a * SCREEN_WIDTH) + b;//(IS) inter (x=W)
+      }
+    }
   }
-  fclose(f);
-  return 1;
+  *u = (int)x;
+  *v = (int)y;
 }
 
 
